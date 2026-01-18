@@ -7,6 +7,8 @@ from tensorflow.keras.models import load_model
 from cvzone.HandTrackingModule import HandDetector
 import tkinter as tk
 from PIL import Image, ImageTk
+import time
+
 
 # configuration
 OFFSET = 29
@@ -22,6 +24,18 @@ class Application:
         self.model = load_model(MODEL_PATH)
         self.current_symbol = ' '
         self.pts = None
+        self.prev_time = time.time()
+        self.fps = 0
+        self.frame_count = 0
+        self.fps_log = []
+        self.start_benchmark = time.time()
+        self.benchmark_duration = 30  # seconds
+        self.benchmark_saved = False
+        self.hand_detected = False
+
+
+
+
 
         # GUI
         self.root = tk.Tk()
@@ -103,12 +117,23 @@ class Application:
 
     def video_loop(self):
         try:
+            self.hand_detected = False
             ok, frame = self.vs.read()
             if not ok:
                 self.root.after(10, self.video_loop)
                 return
 
             frame = cv2.flip(frame, 1)
+            cv2.putText(
+                frame,
+                f"FPS: {self.fps:.2f}",
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 0),
+                2
+            )
+
             hands = hd.findHands(frame, draw=False, flipType=True)
 
             # show webcam frame
@@ -137,6 +162,7 @@ class Application:
                 # detect landmarks again on the crop
                 handz = hd2.findHands(crop, draw=False, flipType=True)
                 if handz:
+                    self.hand_detected = True
                     h2 = handz[0]
                     self.pts = h2['lmList']
 
@@ -178,7 +204,62 @@ class Application:
 
                     # update current character label
                     self.char_label.config(text=str(self.current_symbol))
+            else:
+                # AFTER all hand detection logic
+                if not self.hand_detected:
+                    cv2.putText(
+                        frame,
+                        "No hand detected",
+                        (10, 70),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.9,
+                        (0, 0, 255),
+                        2
+                    ) 
+            # show webcam frame (convert to RGB and display in Tkinter)
+            cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(cv2image).resize((640, 480))
+            imgtk = ImageTk.PhotoImage(image=img)
+            self.panel.imgtk = imgtk
+            self.panel.config(image=imgtk)
 
+            # ================= FPS calculation =================
+            if self.hand_detected:
+                self.frame_count += 1
+
+            current_time = time.time()
+            elapsed = current_time - self.prev_time
+
+            if elapsed >= 1.0:
+                self.fps = self.frame_count / elapsed
+                print(f"FPS: {self.fps:.2f}")
+
+                if self.hand_detected:
+                    self.fps_log.append(self.fps)
+
+
+                self.prev_time = current_time
+                self.frame_count = 0
+
+            # ================= Stop benchmark after fixed time =================
+            if (not self.benchmark_saved and
+                    time.time() - self.start_benchmark >= self.benchmark_duration):
+
+                avg_fps = sum(self.fps_log) / len(self.fps_log) if self.fps_log else 0
+
+                with open("fps_results.txt", "a") as f:
+                    f.write("\n-----------------------------\n")
+                    f.write(f"Average FPS over {self.benchmark_duration} seconds: {avg_fps:.2f}\n")
+                    f.write("FPS values:\n")
+                    for fps in self.fps_log:
+                        f.write(f"{fps:.2f}\n")
+
+                print("Benchmark completed.")
+                print(f"Average FPS: {avg_fps:.2f}")
+
+                self.benchmark_saved = True
+
+            
         except Exception as e:
             print("Exception in video_loop:", e)
             print('==', traceback.format_exc())
