@@ -18,3 +18,40 @@ FPS values:
 6.34
 6.58
 6.26
+
+-----------------------------
+Average FPS over 30 seconds: 0.55
+FPS values:
+0.55
+
+-----------------------------
+Average FPS over 30 seconds: 4.20
+FPS values:
+0.48
+3.38
+4.67
+3.50
+4.18
+4.85
+4.40
+4.38
+4.33
+1.82
+5.26
+5.60
+5.44
+5.50
+4.99
+5.15
+3.42
+
+-----------------------------
+Average FPS over 30 seconds: 0.00
+FPS values:
+
+-----------------------------
+Average FPS over 30 seconds: 2.31
+FPS values:
+0.47
+2.72
+3.74

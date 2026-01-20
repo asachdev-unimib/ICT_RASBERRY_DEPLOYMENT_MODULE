@@ -8,11 +8,12 @@ from cvzone.HandTrackingModule import HandDetector
 import tkinter as tk
 from PIL import Image, ImageTk
 import time
+import json
 
 
 # configuration
 OFFSET = 29
-MODEL_PATH = 'cnn_model_mediapipe.keras'
+MODEL_PATH = 'net_model_mediapipe.keras'
 
 # detectors
 hd = HandDetector(maxHands=1)
@@ -32,10 +33,8 @@ class Application:
         self.benchmark_duration = 30  # seconds
         self.benchmark_saved = False
         self.hand_detected = False
-
-
-
-
+        with open("classes_labels.json", "r") as f:
+            self.class_labels = json.load(f)
 
         # GUI
         self.root = tk.Tk()
@@ -270,6 +269,16 @@ class Application:
         return math.sqrt(((x[0] - y[0]) ** 2) + ((x[1] - y[1]) ** 2))
 
 
+    # def predict(self, img_400):
+    #     img = cv2.resize(img_400, (224, 224))
+    #     img = img / 255.0
+    #     img = img.reshape(1, 224, 224, 3)
+
+    #     pred = self.model.predict(img, verbose=0)
+    #     idx = int(np.argmax(pred))
+
+    #     self.current_symbol = chr(ord('A') + idx)
+
     def predict(self, img_400):
         img = cv2.resize(img_400, (224, 224))
         img = img / 255.0
@@ -278,7 +287,8 @@ class Application:
         pred = self.model.predict(img, verbose=0)
         idx = int(np.argmax(pred))
 
-        self.current_symbol = chr(ord('A') + idx)
+        # ✅ correct mapping
+        self.current_symbol = self.class_labels[idx]
 
 
 
